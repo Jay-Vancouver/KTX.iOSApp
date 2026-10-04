@@ -1,0 +1,90 @@
+# XcodeGen spec. Generate the project with `xcodegen generate` (KTXDriver.xcodeproj is git-ignored).
+name: KTXDriver
+options:
+  bundleIdPrefix: com.ktxtransport
+  deploymentTarget:
+    iOS: "16.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    # Off: tools/embed_admin_pin.sh edits the built Info.plist and reads the untracked Secrets.xcconfig.
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    LOCALIZATION_PREFERS_STRING_CATALOGS: NO
+
+targets:
+  KTXDriver:
+    type: application
+    platform: iOS
+    sources:
+      - path: KTXDriver
+        excludes:
+          - Info.plist
+          - "*.entitlements"
+    configFiles:
+      Debug: Config/App.xcconfig
+      Release: Config/App.xcconfig
+    settings:
+      base:
+        # Bundle ID, entitlements and team come from Config/App.xcconfig (+ untracked Signing.xcconfig).
+        PRODUCT_BUNDLE_IDENTIFIER: $(KTX_BUNDLE_ID)
+        PRODUCT_NAME: KTXDriver
+        INFOPLIST_FILE: KTXDriver/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: $(KTX_ENTITLEMENTS)
+    postBuildScripts:
+      - name: Embed admin PIN hash
+        script: '"${SRCROOT}/tools/embed_admin_pin.sh"'
+        basedOnDependencyAnalysis: false
+        showEnvVars: false # keep KTX_ADMIN_PIN (if set in the environment) out of build logs
+    # Universal Links: KTXDriver/KTXDriver.entitlements has applinks:driver.withktx.com and
+    # applinks:www.withktx.com. The server must serve /.well-known/apple-app-site-association
+    # (TMS work, docs/TMS_REQUEST_ios.md).
+    info:
+      path: KTXDriver/Info.plist
+      properties:
+        CFBundleDisplayName: KTX Driver
+        CFBundleName: KTX Driver
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, ko]
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: KTXBlue
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIRequiresFullScreen: true # iPhone-only app; no iPad split view
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # White status bar icons over the KTX blue strip (set app-wide, not per view controller).
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIViewControllerBasedStatusBarAppearance: false
+        # Location keeps being sent with the screen off (Android: foreground service).
+        UIBackgroundModes: [location]
+        # Purpose strings, localized in InfoPlist.strings (App Store review reads these).
+        NSLocationWhenInUseUsageDescription: KTX Driver shares your truck's location with KTX Transport while you carry freight, from pickup until the day's last delivery. It is used only for freight tracking.
+        NSLocationAlwaysAndWhenInUseUsageDescription: KTX Driver shares your truck's location with KTX Transport while you carry freight, also when the app is closed or not in use. Location is sent only from pickup until the day's last delivery and is used only for freight tracking.
+        NSCameraUsageDescription: KTX Driver uses the camera to scan pickup QR codes and take inspection and delivery photos.
+
+schemes:
+  KTXDriver:
+    build:
+      targets:
+        KTXDriver: all
+    run:
+      config: Debug
+    archive:
+      config: Release

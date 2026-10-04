@@ -1,0 +1,6 @@
+/* 홈 화면에 보이는 앱 이름(Android와 같이 영문 유지). */
+"CFBundleDisplayName" = "KTX Driver";
+"CFBundleName" = "KTX Driver";
+"NSCameraUsageDescription" = "KTX Driver는 픽업 QR 코드를 스캔하고 차량 점검·배송 사진을 찍기 위해 카메라를 사용합니다.";
+"NSLocationWhenInUseUsageDescription" = "KTX Driver는 화물을 싣고 있는 동안 트럭 위치를 KTX Transport와 공유합니다. 위치는 픽업부터 그날의 마지막 배송까지만 전송되며, 화물 추적 외의 용도로는 쓰지 않습니다.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "KTX Driver는 화물을 싣고 있는 동안 앱이 닫혀 있거나 사용 중이 아닐 때도 트럭 위치를 KTX Transport와 공유합니다. 위치는 픽업부터 그날의 마지막 배송까지만 전송되며, 화물 추적 외의 용도로는 쓰지 않습니다.";

@@ -1,0 +1,6 @@
+/* App name shown on the home screen. */
+"CFBundleDisplayName" = "KTX Driver";
+"CFBundleName" = "KTX Driver";
+"NSCameraUsageDescription" = "KTX Driver uses the camera to scan pickup QR codes and take inspection and delivery photos.";
+"NSLocationWhenInUseUsageDescription" = "KTX Driver shares your truck's location with KTX Transport while you carry freight, from pickup until the day's last delivery. It is used only for freight tracking.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "KTX Driver shares your truck's location with KTX Transport while you carry freight, also when the app is closed or not in use. Location is sent only from pickup until the day's last delivery and is used only for freight tracking.";

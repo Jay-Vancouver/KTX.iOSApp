@@ -1,0 +1,65 @@
+/* Based on the Android app's res/values/strings.xml. */
+"app_name" = "KTX Driver";
+"error_title" = "Can't connect";
+"error_message" = "Check your internet connection and try again.";
+"retry" = "Try again";
+"ok" = "OK";
+"cancel" = "Cancel";
+
+/* Location disclosure, shown before the system location prompts (same wording as Android). */
+"disclosure_title" = "Location sharing";
+"disclosure_message" = "KTX Driver collects your phone's location to share your truck's position with KTX Transport while you are carrying a load, including when the app is closed or not in use.\n\nLocation is sent only from pickup until your last delivery of the day, and is used only for tracking your loads.";
+"disclosure_accept" = "Continue";
+"disclosure_decline" = "No thanks";
+
+/* Settings guide when iOS will not show the permission prompt again. */
+"permission_settings_title" = "Location permission";
+"permission_settings_always" = "So that your location is sent with the screen off: in Settings tap Location, choose \"Always\" and turn on \"Precise Location\", then come back.";
+"permission_settings_precise" = "Precise Location is off, so your truck's position may be off by kilometres. In Settings tap Location and turn on \"Precise Location\", then come back.";
+"open_settings" = "Open Settings";
+"later" = "Later";
+
+/* First-run guide (Android setup_* strings, adapted to iOS permission names). */
+"setup_title" = "Set up KTX Driver";
+"setup_intro" = "Allow this once so your truck's location is sent while you drive, even with the screen off.";
+"setup_location_title" = "Location: Always (Precise)";
+"setup_location_desc" = "Tap \"Allow While Using App\" first, then \"Change to Always Allow\". Keep \"Precise\" on. Needed to send your location with the screen off.";
+"setup_allow" = "Allow";
+"setup_start" = "Start";
+"setup_later" = "Later";
+
+/* Settings screen (Android settings_* strings). */
+"settings_title" = "App settings";
+"settings_status" = "Status";
+"settings_tracking" = "Location sending";
+"settings_on" = "On";
+"settings_off" = "Off";
+"settings_last_sent" = "Last sent";
+"settings_never" = "Never";
+"settings_queued" = "Waiting to send";
+"settings_queued_value" = "%d";
+"settings_last_error" = "Last send error";
+"settings_no_error" = "None";
+"settings_location" = "Location permission";
+"settings_perm_always" = "Always";
+"settings_perm_while_in_use" = "While using the app";
+"settings_perm_denied" = "Not allowed";
+"settings_precise" = "Precise location";
+"settings_cadence" = "Interval / heartbeat";
+"settings_cadence_value" = "%d s / %d s";
+"settings_version" = "App version";
+"settings_permissions" = "Request permissions again";
+"settings_server" = "Server address";
+"settings_server_default" = "(built-in)";
+"settings_server_custom" = "(set by administrator)";
+"settings_change_server" = "Change server address";
+"settings_close" = "Close";
+"settings_pin_title" = "Administrator PIN";
+"settings_pin_wrong" = "Wrong PIN";
+"settings_server_invalid" = "Enter an address starting with https://";
+"settings_server_checking" = "Checking the connection…";
+"settings_server_unreachable" = "Cannot connect to %@. Save it anyway?";
+"settings_save" = "Save";
+"settings_save_anyway" = "Save anyway";
+"settings_reset_default" = "Use built-in";
+"settings_server_saved" = "Server address changed. You may need to sign in again.";
