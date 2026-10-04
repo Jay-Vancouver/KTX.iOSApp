@@ -1,8 +1,8 @@
 // Signing values for the KTXDriver target. Defaults are for the company Apple Developer team;
 // put local overrides in the untracked Signing.xcconfig at the repository root (docs/RELEASE.md):
 //   DEVELOPMENT_TEAM = <Team ID>
-//   (free personal team only) KTX_ENTITLEMENTS = KTXDriver/KTXDriver-Personal.entitlements
-//   (free personal team only) KTX_BUNDLE_ID = com.<your-name>.ktxdriver
+//   (free personal team only) KTX_ENTITLEMENTS[sdk=iphoneos*] = KTXDriver/KTXDriver-Personal.entitlements
+//   (free personal team only) KTX_BUNDLE_ID[sdk=iphoneos*] = com.<your-name>.ktxdriver
 KTX_BUNDLE_ID = com.ktxtransport.driver
 KTX_ENTITLEMENTS = KTXDriver/KTXDriver.entitlements
 DEVELOPMENT_TEAM =

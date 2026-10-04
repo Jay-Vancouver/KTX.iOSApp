@@ -33,7 +33,7 @@ Build with `xcodebuild` only. Apple frameworks only, no third-party libraries. K
    screen with retry, company-blue status bar area.
 2. **Location tracking** — CoreLocation background (Best accuracy, no distance filter, automotive,
    background updates, no auto-pause, blue indicator; CLBackgroundActivitySession on iOS 17+).
-   Send every `interval` (default 60 s; skip if < 5/6 interval since last send; first fix immediately).
+   Send every `interval` (default 60 s; send the first fix whose timestamp (whole seconds, as the server stores it) is ≥ interval after the last report's — iOS delivers ~1 fix/s, so Android's 5/6 rule would mean 50 s; first fix immediately).
    Heartbeat: resend last fix with current time if nothing sent for `heartbeat` (default 300 s);
    check from both location callback and timer. Significant-location-change monitoring to relaunch
    after termination/reboot.

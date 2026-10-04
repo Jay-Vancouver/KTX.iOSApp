@@ -27,6 +27,7 @@ final class LocationTracker: NSObject {
 
     private var lastFix: CLLocation?
     private var lastQueuedAt: UInt64? // monotonic ns of the last queued report (counts while asleep)
+    private var lastQueuedTime: Date?  // `timestamp` sent in the last report
 
     private override init() {
         super.init()
@@ -106,6 +107,7 @@ final class LocationTracker: NSObject {
         isRunning = true
         lastFix = nil
         lastQueuedAt = nil
+        lastQueuedTime = nil
         UIDevice.current.isBatteryMonitoringEnabled = true
 
         manager.allowsBackgroundLocationUpdates = true
@@ -152,9 +154,13 @@ final class LocationTracker: NSObject {
 
     private func onFix(_ location: CLLocation) {
         guard location.horizontalAccuracy >= 0 else { return } // invalid fix
-        // iOS reports about once a second; keep one report per interval (5/6 allows for jitter).
+        // iOS reports about once a second; send the first fix whose time, in the whole seconds the
+        // server stores, is an interval after the last report's — so the server sees fixes exactly
+        // `interval` apart. (Android's "skip if under 5/6 of the interval" would mean every 50 s here,
+        // as fixes arrive every second.) Measured on fix times, not arrival times, which lag unevenly.
         let interval = Double(state.intervalSec)
-        if let since = secondsSinceLastQueued(), since < interval * 5 / 6 {
+        if let last = lastQueuedTime,
+           location.timestamp.timeIntervalSince1970.rounded(.down) - last.timeIntervalSince1970.rounded(.down) < interval {
             lastFix = location // newest position, for the heartbeat
             checkHeartbeat(retryFailedSends: false) // fixes arrive every second; retries wait for the timer
             return
@@ -188,6 +194,7 @@ final class LocationTracker: NSObject {
         let s = state
         guard let phone = s.phone, let url = s.url else { return }
         lastQueuedAt = Self.monotonicNow()
+        lastQueuedTime = time
         scheduleHeartbeat(after: TimeInterval(s.heartbeatSec))
         FixUploader.shared.enqueue(url: url, body: Self.osmAndBody(phone: phone, location: location, time: time))
     }
