@@ -11,7 +11,7 @@ https://github.com/Jay-Vancouver/KTX.AndroidApp — when in doubt, match its cod
 - Commit only when the user says "커밋해줘", then always push to origin. Author: jay <system@ktxtransport.com>.
 - Before reporting work as done, run an `xcodebuild` simulator build and report the result.
 - After each work-order step, confirm the build passes and ask whether to commit.
-- Never commit or print secrets (admin PIN, Apple account info). PIN goes in git-ignored `Secrets.xcconfig` or env `KTX_ADMIN_PIN`; only its SHA-256 reaches the app.
+- Never commit or print secrets (admin PIN, Apple account info). PIN goes in git-ignored `Secrets.xcconfig` or env `KTX_ADMIN_PIN`; only its SHA-256 reaches the app (`tools/embed_admin_pin.sh`). Team ID / personal-team overrides go in git-ignored `Signing.xcconfig` (read by `Config/App.xcconfig`). Release steps: `docs/RELEASE.md`.
 - No TMS server changes here — write requests into `docs/TMS_REQUEST_ios.md`.
 
 ## Why
@@ -69,6 +69,20 @@ Build with `xcodebuild` only. Apple frameworks only, no third-party libraries. K
 7. Settings + admin-PIN server URL
 8. Signing/release → `docs/RELEASE.md`
 9. Device test checklist → `docs/TEST.md`
+
+Debug tracking without the bridge (launch arguments, Debug builds only — see `DebugCommands` in `AppDelegate.swift`):
+```sh
+python3 tools/osmand_receiver.py            # --status 503 / --delay 20 to test retries
+xcrun simctl privacy booted grant location-always com.ktxtransport.driver
+xcrun simctl location booted start --speed=25 49.2827,-123.1207 49.2000,-123.0500
+xcrun simctl launch --terminate-running-process booted com.ktxtransport.driver \
+  -debugTracking start -debugPhone 6045551234 -debugURL http://127.0.0.1:8099/gps -debugOptions '{"interval":10,"heartbeat":60}'
+xcrun simctl launch --terminate-running-process booted com.ktxtransport.driver -debugTracking stop
+```
+Build: `xcodegen generate && xcodebuild -project KTXDriver.xcodeproj -scheme KTXDriver -destination 'generic/platform=iOS Simulator' build`
+(Homebrew tools need `eval "$(/opt/homebrew/bin/brew shellenv)"` in non-login shells.)
+
+Bridge test site: `python3 tools/bridge_test_server.py` (instructions in its docstring) — automatic checks of every bridge call, refusal outside /driver/, iframe isolation and ktxappstatus events.
 
 Local test: `tools/` OsmAnd receiver (python3 http.server) at http://127.0.0.1:8099/gps (Debug-only ATS exception);
 move simulator with `xcrun simctl location` or GPX. Background behavior must be tested on a real device.
