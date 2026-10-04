@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Free personal team (testing on your own iPhone): no Associated Domains, which personal teams
+     cannot sign. Universal Links do not work in this build; open the site from inside the app. -->
+<plist version="1.0">
+<dict/>
+</plist>

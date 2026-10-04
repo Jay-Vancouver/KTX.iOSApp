@@ -29,6 +29,8 @@ Package.resolved
 
 # Secrets (admin PIN, signing) — never commit
 Secrets.xcconfig
+Secrets.xconfig
+Signing.xcconfig
 *.p12
 *.mobileprovision
 *.cer
