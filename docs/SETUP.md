@@ -93,7 +93,22 @@ xcodebuild -project KTXDriver.xcodeproj -scheme KTXDriver \
   -destination 'generic/platform=iOS Simulator' -configuration Debug build
 ```
 
-## 8. 비밀 값
+## 8. 비밀 값 (관리자 PIN)
 
-관리자 PIN은 저장소에 넣지 않는다. 저장소 루트에 git에 들어가지 않는 `Secrets.xcconfig`를 만들거나
-환경변수 `KTX_ADMIN_PIN`을 설정한다(형식은 7단계에서 정한다). Android 판과 같은 PIN을 쓴다.
+설정 화면에서 서버 주소를 바꿀 때 쓰는 관리자 PIN. Android 판과 같은 PIN을 쓴다.
+저장소에는 넣지 않고, 빌드할 때 `tools/embed_admin_pin.sh`가 **SHA-256 해시만** 앱의 Info.plist
+(`KTXAdminPinSHA256`)에 넣는다.
+
+저장소 루트에 `Secrets.xcconfig`를 직접 만든다(`.gitignore`에 들어 있어 커밋되지 않는다):
+
+```
+KTX_ADMIN_PIN = 여기에PIN
+```
+
+또는 빌드할 때 환경변수로: `KTX_ADMIN_PIN=... xcodebuild ...`
+(빌드 단계는 환경변수를 로그에 남기지 않도록 설정되어 있다.)
+
+- PIN이 없으면 경고를 내고 `000000`을 쓴다(Android와 같음).
+- **Archive(App Store/TestFlight 업로드용)는 PIN이 없으면 실패한다.**
+- 확인: 빌드 후 `plutil -p <앱>.app/Info.plist | grep KTXAdminPinSHA256` 값이
+  `printf '<PIN>' | shasum -a 256` 결과와 같아야 한다.
