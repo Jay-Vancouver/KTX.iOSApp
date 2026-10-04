@@ -31,6 +31,8 @@ Package.resolved
 Secrets.xcconfig
 Secrets.xconfig
 Signing.xcconfig
+# App Store review notes from TMS: contains the SMS-free demo login (this repo is public)
+docs/APP_REVIEW_NOTES.md
 *.p12
 *.mobileprovision
 *.cer

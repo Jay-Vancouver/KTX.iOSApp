@@ -19,6 +19,8 @@ KTX Driver iOS 앱을 드라이버에게 배포하기 전에 실제 아이폰으
       시험용 실행 인자가 있고 Universal Links가 없다 — 그 경우 2.2는 ➖, `-debugOpenURL`로 로그인한다(RELEASE.md A).
 - [ ] **모바일 데이터로 시험한다.** 사무실 Wi-Fi에서는 withktx.com에 접속되지 않는다(hairpin NAT).
 - [ ] 시험용 드라이버 전화번호와, 그 번호로 픽업할 시험 로드(Load#)를 준비한다.
+      SMS 없이 로그인되는 시험 번호는 `docs/APP_REVIEW_NOTES.md`(git 제외)에 있다. 그 번호에는 로드가 연결되지 않으므로
+      추적 시험은 드라이버 메뉴의 "Start tracking" 버튼으로 한다(3.2·5절 배송 흐름은 등록 드라이버 번호로).
 - [ ] 아이폰 설정 → 개인정보 보호 및 보안 → 위치 서비스가 켜져 있는지 확인.
 - [ ] 서버(TMS) 작업 확인([TMS_REQUEST_ios.md](TMS_REQUEST_ios.md)). 끝나지 않은 항목은 ➖로 두고 나중에 다시 한다.
   - (S1) 픽업 완료 화면이 `KtxAndroidApp.startTracking(전화번호, "https://www.withktx.com/gps")`를 부른다(Android와 같은 코드)

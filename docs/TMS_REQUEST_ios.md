@@ -1,5 +1,26 @@
 # TMS 작업 요청 — iOS 앱(KTX Driver) 지원
 
+## 진행 상황 (2026-10-04, TMS 회신 `docs/APP_REVIEW_NOTES.md` 기준 — 그 파일은 데모 로그인 때문에 git 제외)
+
+| # | 항목 | 상태 |
+|---|---|---|
+| 1 | AASA 파일 | TMS는 "제공 중(200, JSON)"이라고 회신했지만, **2026-10-04 11:3x 확인 시 www.withktx.com은 302 → `/vendor/login`, driver.withktx.com은 301 → `/driver/`** (배포 전이거나 nginx가 가로챔). 배포 확인 필요. `TMS_IOS_TEAM_ID`는 Team ID가 생기면 설정. 아래 1-1 추가 요청 |
+| 2 | 앱 안 + iPhone 문구 | `TMS_IOS_APP_URL` 설정 시 Safari에 App Store 안내. 앱 안 문구 숨김은 실기기에서 확인 |
+| 3 | 드라이버 가이드 아이폰 판 | 미확인 |
+| 4 | 개인정보처리방침 | **완료** — https://withktx.com/privacy 2절에 Android·iPhone 앱, 90일 보관 |
+| 5 | 심사용 데모 계정 | **완료** — SMS 없이 로그인되는 시험 번호(운영 서버 설정, 심사 기간 동안 유지) |
+| 6 | version.json "ios" | 서버는 파일을 그대로 제공. 앱 등록 후 링크 넣기 |
+
+### 1-1. AASA 추가 요청 (iOS 세션 의견)
+
+- 회신에 따르면 AASA가 `/driver/*`와 **`/*`** 둘 다를 앱에 연결한다. `/*`이면 앱이 설치된 아이폰에서
+  www.withktx.com의 **모든** 링크(고객용 화물 조회 페이지, 다운로드 파일 등)가 앱으로 열린다.
+  앱은 우리 사이트의 다운로드를 Safari로 넘기는데, 그 주소가 다시 앱으로 돌아오는 문제도 생길 수 있다.
+  → **`/driver/*`만 남기고 `/*`는 빼는 것**을 요청한다(다운로드 경로가 `/driver/` 아래라면 `"exclude": true`로 제외).
+- 앱 entitlement에 `applinks:driver.withktx.com`도 있으므로, driver.withktx.com의
+  `/.well-known/apple-app-site-association`도 리디렉션 없이 200이어야 한다(nginx 예외). 안 되면 그 도메인의
+  Universal Link만 동작하지 않는다(www는 영향 없음). 어려우면 앱에서 이 도메인을 빼도 된다 — 알려 주면 앱을 고친다.
+
 iOS 앱 저장소(KTX.iOSApp)에서 정리한, TMS 세션에서 할 일. 앱은 Android와 같은 다리
 (`window.KtxAndroidApp`)를 제공하므로 **다리 호출 코드는 고치지 않는다.**
 

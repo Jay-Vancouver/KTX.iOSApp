@@ -34,9 +34,11 @@
 3. 저장소 루트에 `Signing.xcconfig`:
    ```
    DEVELOPMENT_TEAM = <개인 팀 ID>
-   KTX_BUNDLE_ID = com.<이름>.ktxdriver
-   KTX_ENTITLEMENTS = KTXDriver/KTXDriver-Personal.entitlements
+   KTX_BUNDLE_ID[sdk=iphoneos*] = com.<이름>.ktxdriver
+   KTX_ENTITLEMENTS[sdk=iphoneos*] = KTXDriver/KTXDriver-Personal.entitlements
    ```
+   `[sdk=iphoneos*]`: 기기 빌드에만 적용한다. 시뮬레이터 빌드는 원래 번들 ID(`com.ktxtransport.driver`)를 유지해야
+   `xcrun simctl launch ... com.ktxtransport.driver`와 시험 도구가 새 빌드를 실행한다.
 4. 아이폰: USB로 Mac에 연결 → "이 컴퓨터를 신뢰" → 설정 → 개인정보 보호 및 보안 → **개발자 모드** 켜기(재시동).
 5. 빌드·설치:
    ```sh
@@ -144,7 +146,7 @@
 | 가격 | 무료, 인앱 구매 없음 |
 | 판매 국가 | 캐나다 (필요하면 미국 추가) |
 | 연령 등급 | 설문에서 모두 "없음" → 4+ (업무용) |
-| 개인정보처리방침 URL | `https://withktx.com/privacy` (iOS 앱 내용 보강 필요 — TMS 요청 4절) |
+| 개인정보처리방침 URL | `https://withktx.com/privacy` — 2절 "Driver Location Tracking (GPS)"에 Android·iPhone 앱, 백그라운드 수집, 중지 방법, 90일 보관 (2026-10-04 시행) |
 | 지원 URL | `https://withktx.com` |
 | 저작권 | `© 2026 KTX Transport` |
 
@@ -201,28 +203,22 @@ KTX Driver is for drivers registered with KTX Transport. A registered phone numb
 
 ### E-4. 앱 심사 정보 (App Review Information)
 
-- **로그인 정보**: SMS 링크 로그인이라 심사자가 들어갈 방법이 필요 → TMS에서 심사용 시험 드라이버
-  (고정 로그인 링크 또는 비밀번호 로그인)와 픽업 가능한 시험 화물을 마련(TMS 요청 5절).
+TMS 세션이 보낸 **`docs/APP_REVIEW_NOTES.md`**를 기준으로 한다. 이 파일에는 SMS 없이 로그인되는
+데모 계정이 들어 있어서 **git에 넣지 않는다**(`.gitignore`, 저장소가 공개). 받은 사람의 Mac에만 둔다.
+
+- **로그인 정보**: APP_REVIEW_NOTES.md의 데모 계정. App Store Connect의 "로그인 필요" → 사용자 이름 칸에
+  데모 전화번호, 암호 칸에는 "none (SMS-free test number)"처럼 적는다.
+  - 데모 계정으로 볼 수 있는 것: 드라이버 메뉴, PICK UP(카메라), DELIVERY(빈 목록), 위치 카드와 "Start tracking" 버튼.
+    LOGBOOK·INSPECTION은 등록 드라이버가 아니라서 숨겨진다.
+  - 심사 기간 내내 서버 설정이 켜져 있어야 한다(APP_REVIEW_NOTES.md "Demo account").
 - **연락처**: 담당자 이름·전화·이메일.
-- **메모(Notes)** 초안:
+- **메모(Notes)**: APP_REVIEW_NOTES.md의 "Suggested text for Notes"를 그대로 쓰고, 끝에 아래 문단을 덧붙인다
+  (4.2 최소 기능 대비):
 ```
-KTX Driver is an internal work app for truck drivers contracted by KTX Transport (Canada).
-
-Sign-in: drivers sign in with a link texted to their registered phone number. For review please use:
-  <demo login link or credentials from TMS>
-A test pickup is assigned to this account so you can see the full flow.
-
-Background location (UIBackgroundModes: location):
-- When the driver completes a pickup in the app, the page calls the native tracker, which sends the
-  truck's position to our server about once a minute, including with the screen off, so dispatch and the
-  customer can follow the freight. Tracking stops automatically after the driver's last delivery of the day.
-- Before any system location prompt the app shows its own disclosure explaining this collection, and the
-  driver can decline. The blue location indicator is shown while tracking in the background.
-- Location is used only for freight tracking; it is not shared with advertisers or used for tracking
-  across apps.
-
-Native features beyond the website: background location tracking with an offline queue, camera scanning,
-Universal Links for the texted sign-in link, and a settings screen with tracking status.
+Native features beyond the website: background location tracking with an offline queue (positions are
+kept on the phone and sent in order when the connection returns), camera scanning, Universal Links for the
+texted sign-in link, and a settings screen showing tracking status. While tracking in the background iOS
+shows the blue location indicator.
 ```
 
 ### E-5. 앱 개인정보 보호 (App Privacy — "데이터 수집" 설문)
@@ -244,9 +240,9 @@ App Store Connect의 답과 `KTXDriver/Resources/PrivacyInfo.xcprivacy`를 맞�
 - **4.2 최소 기능**(웹사이트를 감싼 앱): 백그라운드 위치 전송·오프라인 큐·카메라·Universal Links 등
   네이티브 기능을 메모에 적는다(E-4).
 - **2.5.4 / 5.1.1 백그라운드 위치**: 목적 문구가 구체적이어야 한다(Info.plist `NSLocation...UsageDescription`,
-  한글·영문). 심사자가 실제로 위치가 쓰이는 흐름(픽업 → 전송)을 볼 수 있어야 한다 → 데모 계정·시험 화물.
+  한글·영문). 심사자가 실제로 위치가 쓰이는 흐름을 볼 수 있어야 한다 → 데모 계정의 "Start tracking" 버튼.
 - **로그인 불가**: 데모 계정이 동작하지 않으면 바로 거절된다. 제출 직전 직접 로그인해 확인.
-- **개인정보처리방침**이 iOS 앱의 위치 수집(백그라운드, 자동 시작·중지)을 설명해야 한다.
+- **개인정보처리방침**이 iOS 앱의 위치 수집(백그라운드, 자동 시작·중지)을 설명해야 한다 → 2026-10-04 반영됨(E-1).
 
 ---
 
