@@ -1,0 +1,239 @@
+KTX 드라이버 하이브리드 앱 (iOS) — 새 세션용 작업 지시서
+============================================================
+
+이 파일은 맥북(Mac)의 새 폴더(예: ~/ktx-ios)에서 여는 새 Claude Code 세션의 첫 지시입니다.
+"ktxiosapp.txt를 읽고 0절의 세션 규칙을 기억해 줘. 5절의 작업 순서대로 1)부터 시작해."라고 하십시오.
+
+Android 판은 이미 완성되어 있다: https://github.com/Jay-Vancouver/KTX.AndroidApp
+(Kotlin). 기능과 웹 다리의 약속은 Android 판과 같게 만들고, 판단이 애매하면 Android 판의
+코드와 문서(CLAUDE.md, docs/WIP.md, docs/TEST.md)를 기준으로 한다. 필요하면 그 저장소를
+읽기 전용으로 clone해서 참고한다(그 저장소는 고치지 않는다).
+
+--------------------------------------------------------------------
+0. 세션 규칙 (매 세션 적용)
+--------------------------------------------------------------------
+- 답변, 질문, 설명은 모두 한글로. 코드·식별자·커밋 메시지는 영문.
+- 커밋은 내가 "커밋해줘"라고 할 때만. 커밋하면 항상 origin에 push까지.
+- 이 폴더는 TMS, Android 앱과 별개의 git 저장소. 첫 작업으로 git init, .gitignore(Xcode/Swift),
+  CLAUDE.md(이 파일의 1~5절 요약)를 만들 것. origin 주소는 내가 알려 준다
+  (예: https://github.com/Jay-Vancouver/KTX.iOSApp.git). 커밋 작성자: jay, system@ktxtransport.com.
+- 작업 완료 보고 전에 xcodebuild 빌드(시뮬레이터 대상)가 통과했는지 확인하고 결과를 말할 것.
+- 5절의 각 단계가 끝날 때마다 빌드 통과를 확인하고, 그 단계를 커밋할지 물어볼 것.
+- 비밀 값(관리자 PIN, Apple 계정 정보)은 저장소에 넣지 말고 출력하지도 말 것.
+- TMS 서버 쪽 작업은 이 세션에서 하지 말고, TMS 세션에 보낼 요청 문서로 정리할 것.
+
+--------------------------------------------------------------------
+1. 왜 만드는가 (배경)
+--------------------------------------------------------------------
+드라이버는 TMS 웹 페이지 https://driver.withktx.com 에서 픽업 스캔, 배송 서명, 운행 일지,
+차량 점검을 한다(이 주소는 https://www.withktx.com/driver/ 로 리디렉션된다).
+트럭 위치는 지금 아이폰 드라이버의 경우 별도 앱(Traccar Client)이 보낸다. 드라이버가 앱을
+따로 설치하고 서버 주소와 식별자를 입력해야 하고, 웹 페이지는 그 앱을 켜거나 끌 수 없으며,
+브라우저는 화면이 꺼지면 위치를 보낼 수 없다.
+
+Android는 이 문제를 하이브리드 앱(KTX Driver)으로 해결했다: 드라이버 웹 페이지를 WebView로
+감싸고, 페이지가 다리(bridge)로 "추적 시작/중지"를 지시하면 앱의 네이티브 위치 서비스가
+위치를 보낸다. 아이폰도 같은 앱을 만든다. 목표는 **TMS 서버의 다리 호출 코드를 고치지 않고**
+아이폰 앱에서도 그대로 동작하는 것이다.
+
+배포: 아이폰에는 APK 같은 직접 설치가 없다(캐나다). App Store를 통해 배포한다.
+회사 드라이버만 쓰므로 App Store의 "Unlisted(목록 비공개) 앱" 배포를 우선 검토하고,
+시범 운영은 TestFlight로 한다. Apple Developer Program 회사(조직) 계정이 필요하다(사용자가 준비).
+
+--------------------------------------------------------------------
+2. 앱 구조 (만들 것)
+--------------------------------------------------------------------
+Swift, SwiftUI 앱 + UIKit WKWebView. 최소 iOS 16. 번들 ID com.ktxtransport.driver,
+앱 이름 "KTX Driver". 프로젝트 파일은 XcodeGen(project.yml)으로 생성해서, 사람이 읽을 수 있는
+텍스트로 관리한다(.xcodeproj는 생성물로 취급). Xcode 화면 작업 없이 xcodebuild로 빌드한다.
+외부 라이브러리 없이 Apple 기본 프레임워크만 쓴다.
+
+(1) WebView 화면 하나
+    - https://driver.withktx.com 을 연다. 로그인(SMS 링크), 픽업, 배송, 일지, 점검은
+      전부 웹 페이지가 처리한다. 앱은 화면을 새로 만들지 않는다.
+    - 기본(persistent) WKWebsiteDataStore로 쿠키 유지(로그인 6개월).
+    - 카메라: 웹의 getUserMedia(픽업 QR 스캔)와 <input type=file capture>(점검 사진)가 동작해야
+      한다. NSCameraUsageDescription, WKUIDelegate의 미디어 캡처 권한 요청은 우리 호스트에만 허용.
+      allowsInlineMediaPlayback = true(스캔 화면이 전체화면 동영상으로 바뀌지 않게).
+    - 뒤로 가기: allowsBackForwardNavigationGestures = true.
+    - 우리 호스트(withktx.com과 그 하위 도메인, 설정된 서버 주소의 호스트) 밖의 링크와
+      다운로드는 Safari로 연다(UIApplication.open). tel:, sms:, mailto:도 시스템으로.
+    - User-Agent에 "KTXDriverApp/<버전>"을 덧붙인다(applicationNameForUserAgent).
+      서버가 앱 안인지 이 문자열로 판별한다. 아이폰 여부는 서버가 UA의 iPhone으로 구분한다.
+    - Universal Links: Associated Domains에 applinks:driver.withktx.com, applinks:www.withktx.com.
+      대상 경로는 www.withktx.com의 /driver/ 아래 전체(SMS 로그인 링크 /driver/s/<token> 포함).
+      서버의 /.well-known/apple-app-site-association 파일은 TMS 세션 작업(4절).
+    - 네트워크 오류 시 "연결할 수 없습니다 / 다시 시도" 화면(한글·영문).
+    - 상태 표시줄 영역은 회사 파란색 배경(Android와 같게).
+
+(2) 위치 추적 (CoreLocation, Background Modes: location)
+    - Android의 포그라운드 서비스에 해당한다. CLLocationManager:
+      desiredAccuracy = kCLLocationAccuracyBest, distanceFilter = kCLDistanceFilterNone,
+      activityType = .automotiveNavigation, allowsBackgroundLocationUpdates = true,
+      pausesLocationUpdatesAutomatically = false, showsBackgroundLocationIndicator = true.
+      iOS 17 이상에서는 CLBackgroundActivitySession 사용을 검토(장시간 백그라운드 유지).
+    - 주기: interval(기본 60초)마다 한 번 보낸다. iOS는 초당 위치를 주므로 interval로 걸러 낸다
+      (Android처럼 직전 전송 후 interval의 5/6이 안 지났으면 건너뜀). 시작하면 첫 위치는 즉시.
+    - 하트비트: heartbeat(기본 300초) 동안 보낸 것이 없으면 마지막 위치를 현재 시각으로 다시 보낸다
+      (서버가 "주차"와 "꺼짐"을 구분). 백그라운드에서 Timer가 멈출 수 있으므로 위치 콜백과
+      타이머 양쪽에서 검사한다.
+    - 앱 종료·재부팅 대비: startMonitoringSignificantLocationChanges()를 함께 켜 둔다.
+      앱이 위치 이벤트로 다시 실행되면(launchOptions의 .location) 추적 상태가 켜져 있을 때
+      정밀 추적을 다시 시작한다. 사용자가 앱 전환기에서 쓸어 올려 종료한 경우 iOS가 다시
+      깨우지 않을 수 있다 — 실기기에서 확인하고 결과를 docs/TEST.md와 드라이버 안내에 반영.
+    - 전송 형식(서버가 이미 받는 OsmAnd 형식, Android와 동일):
+        POST <startTracking이 준 url>, Content-Type: application/x-www-form-urlencoded,
+        User-Agent: KTXDriverApp/<버전>
+        필드: id(전화번호 10자리), lat, lon(소수 6자리), timestamp(위치 시각, UTC epoch 초),
+              speed(knots = m/s × 1.943844, 소수 1자리; 음수면 0), bearing(course, 음수면 0),
+              altitude, accuracy(horizontalAccuracy), batt(배터리 %, 모르면 생략).
+        숫자는 로캘과 무관하게 소수점 "."로.
+      응답: 2xx = 성공. 408·429를 뺀 4xx = 영구 거부(버리고 오류 기록). 그 밖(3xx, 5xx,
+      408, 429, 네트워크 오류) = 다시 시도. 타임아웃 15초.
+    - 오프라인 큐: 보내기 전에 먼저 로컬 큐(SQLite 또는 파일)에 저장하고 오래된 것부터 순서대로
+      보낸다. 최대 10,000건(넘으면 오래된 것부터 버림). 같은 (id, timestamp)를 두 번 보내도
+      서버가 한 행만 저장하므로 중복은 무해. 네트워크가 돌아오면(NWPathMonitor) 즉시 재전송.
+    - 전송 감시: 한 건 전송이 60초를 넘기면 그 요청을 취소하고 다음 전송을 계속한다
+      (Android에서 멈춘 전송 스레드 때문에 2시간 전송이 끊긴 사례가 있었다).
+    - 상태 저장(UserDefaults): tracking on/off, phone, url, interval, heartbeat, lastSentAt
+      (서버가 받아들인 마지막 위치 시각, epoch ms), lastSendError(+시각).
+    - URL은 startTracking()이 준 것만 쓴다. 하드코딩하지 않는다.
+
+(3) 웹 ↔ 네이티브 다리 — 객체 이름 "KtxAndroidApp" (Android와 같은 이름, 서버 코드 공유)
+    TMS 페이지는 이 함수들을 **동기**로 부르고 반환값을 바로 쓴다
+    (예: ok = KtxAndroidApp.startTracking(...); if (ok === false) ...,
+         JSON.parse(KtxAndroidApp.status())). iOS의 WKScriptMessageHandler는 비동기이므로,
+    WKUserScript(documentStart, 메인 프레임만)로 window.KtxAndroidApp 객체를 주입하고 그 안에서
+    window.prompt("ktx:" + JSON.stringify({method, args}))를 호출해 WKUIDelegate의
+    runJavaScriptTextInputPanelWithPrompt에서 동기 응답을 돌려주는 방식으로 구현한다
+    ("ktx:"로 시작하지 않는 prompt는 평소처럼 입력 창을 보여 줌). 더 나은 동기 방식이 있으면
+    제안하되 반환 의미는 아래와 같아야 한다.
+    - startTracking(phone, url[, options]) → true/false.
+      false: 허용되지 않은 페이지, phone이 10자리가 아님(11자리이고 1로 시작하면 1을 떼어 냄),
+      url이 https가 아니거나 허용 호스트가 아님, options가 올바른 JSON이 아님.
+      options는 JSON **문자열**: '{"interval":30,"heartbeat":300}' (초). interval 10..600(기본 60),
+      heartbeat 60..3600(기본 300), 범위 밖은 잘라 맞춤. 빠진 값은 기본값. 추적 중 다시 부르면 즉시 적용.
+      options가 없거나 "undefined"/"null"/빈 문자열이면 기본값.
+      위치 권한이 없으면 tracking-on을 저장하고 권한 흐름을 시작하며, 허용되면 바로 시작한다.
+    - stopTracking()
+    - status() → JSON 문자열:
+      {tracking, lastSentAt, permission:"always|whileInUse|denied", battery, interval, heartbeat,
+       queued, lastError}
+      tracking = 지금 실제로 추적 중인지. lastSentAt = epoch ms 또는 null. battery는 iOS에 개념이
+      없으므로 항상 "unrestricted"(그래야 서버가 배터리 버튼을 보이지 않는다). 정밀 위치가 꺼져
+      있으면(reducedAccuracy) permission을 "whileInUse"로 보고해 페이지가 권한 버튼을 보이게 한다.
+      queued = 큐에 남은 건수, lastError = 마지막 전송 오류 문자열 또는 null.
+      허용되지 않은 페이지에서는 "{}".
+    - requestPermissions(): 위치 공개 안내(아래 (5)) → "앱을 사용하는 동안" → "항상" 순서로 요청.
+      이미 거부되어 다시 물을 수 없으면 설정 앱의 이 앱 화면을 연다. 정밀 위치가 꺼져 있으면
+      켜도록 안내.
+    - version() → 앱 버전 문자열(CFBundleShortVersionString).
+    - 이벤트: 권한 흐름이 끝났을 때, 추적 상태가 바뀌었을 때, 앱이 포그라운드로 돌아올 때
+      window와 document에 CustomEvent "ktxappstatus"(detail = status 객체)를 보낸다.
+    - 보안: 다리는 메인 프레임이 driver.withktx.com, 또는 www.withktx.com의 /driver/ 아래,
+      또는 관리자가 설정한 서버 주소의 호스트·경로 아래일 때만 동작한다. 호출 시점마다
+      현재 URL을 검사한다(iframe·다른 사이트에서는 거부).
+    - 허용 위치 전송 호스트: https이고 withktx.com(및 하위 도메인)이거나, 관리자가 설정한
+      서버 주소의 도메인(예: test.ktxtransport.com → ktxtransport.com)과 그 하위 도메인.
+      Debug 빌드는 http://127.0.0.1 / localhost도 허용(로컬 수신기 시험용).
+
+(4) 설정 화면 (Android의 SettingsActivity와 같은 내용)
+    - 여는 방법: 메인 화면 상단 64pt 띠에서 왼쪽→오른쪽으로 밀기(화면 왼쪽 끝 20pt에서 시작한
+      것은 뒤로 가기 제스처이므로 제외).
+    - 표시: 위치 전송 켜짐/꺼짐, 마지막 전송 시각(폰 현지 시간), 대기 중인 위치 N건,
+      마지막 전송 오류, 위치 권한, 정밀 위치, 전송 간격/하트비트, 앱 버전, "권한 다시 요청",
+      서버 주소.
+    - 서버 주소 변경: 관리자 PIN을 입력해야 한다(입력은 가려서). APK에 PIN 원문을 넣지 않고
+      SHA-256만 넣는다 — 빌드 시 저장소 밖의 설정(예: git에 넣지 않는 Secrets.xcconfig 또는
+      환경변수 KTX_ADMIN_PIN)에서 읽어 해시를 Info.plist/빌드 설정에 넣는다. Android와 같은
+      PIN을 쓴다(사용자가 직접 입력해 둔다). 주소 저장 전 접속 확인(응답 200~499),
+      실패하면 "그래도 저장" 선택. "기본값으로" 버튼. 저장하면 WebView를 그 주소로 다시 연다.
+    - 시험 서버 사용 예: https://test.ktxtransport.com/driver/
+
+(5) 첫 실행 안내와 위치 공개 안내
+    - 첫 실행 화면: "위치: 항상 허용"(정밀 위치 포함) 항목과 "시작" 버튼. 허용되면 다시 묻지 않음.
+      (iOS에는 배터리 예외·알 수 없는 앱 설치·상시 알림이 없으므로 그 항목은 없다.)
+    - 위치 권한 대화상자 전에 앱 자체 안내를 먼저 보여 준다(Android와 같은 문구, 한글·영문):
+      "KTX Driver는 화물을 싣고 있는 동안 트럭 위치를 KTX Transport와 공유하기 위해 휴대폰의
+       위치 정보를 수집합니다. 앱이 닫혀 있거나 사용 중이 아닐 때도 수집됩니다.
+       위치는 픽업부터 그날의 마지막 배송까지만 전송되며, 화물 추적 외의 용도로는 쓰지 않습니다."
+      (문구는 TMS 쪽 수집 시점 정책이 바뀌면 함께 바꾼다.)
+    - Info.plist 목적 문구: NSLocationWhenInUseUsageDescription,
+      NSLocationAlwaysAndWhenInUseUsageDescription, NSCameraUsageDescription — 위와 같은 취지로
+      구체적으로(App Store 심사에서 확인한다). 한글·영문 현지화(InfoPlist.strings).
+
+(6) 업데이트
+    - App Store가 업데이트를 담당하므로 앱 안 설치 기능은 없다.
+    - (선택) 서버의 /app/version.json에 "ios" 항목(최신 버전, App Store 링크)이 생기면 새 버전
+      안내 후 App Store를 연다. 서버에 없으면 아무것도 하지 않는다.
+
+(7) 언어: 한글·영문(폰 언어를 따름). Android의 res/values, res/values-ko 문구를 기준으로 한다.
+
+--------------------------------------------------------------------
+3. 동작 시나리오 (Android와 같음)
+--------------------------------------------------------------------
+- 픽업 완료 화면이 KtxAndroidApp.startTracking(전화번호, "https://www.withktx.com/gps", options)을
+  부른다 → 즉시 첫 위치 → interval마다 전송.
+- 배송 완료 화면이 남은 화물이 없으면 KtxAndroidApp.stopTracking()을 부른다.
+- 상태 페이지의 위치 카드는 서버에 도착한 위치 + status()로 표시한다.
+- 화면을 끄고 주머니에 넣어도 전송이 계속되어야 한다. 상단에 파란 위치 표시가 나타난다.
+
+--------------------------------------------------------------------
+4. 서버(TMS) 쪽에서 할 일 — 이 세션이 아니라 TMS 세션에서
+--------------------------------------------------------------------
+이 세션은 아래 내용을 docs/TMS_REQUEST_ios.md로 정리만 한다.
+- /.well-known/apple-app-site-association (www.withktx.com, driver.withktx.com 둘 다,
+  Content-Type application/json, 리디렉션 없이): appID = <TeamID>.com.ktxtransport.driver,
+  경로 /driver/*. TeamID는 Apple 계정이 생기면 알려 준다.
+- 앱 안(UA에 KTXDriverApp/)이면서 iPhone이면: APK 설치·배터리·"출처를 알 수 없는 앱" 문구와
+  Traccar 안내를 숨기고, 앱 다운로드 안내는 App Store 링크로.
+- 드라이버 가이드 아이폰 판: App Store 설치 → 로그인 링크 → 위치 "항상"·정밀 위치 허용,
+  "앱을 쓸어 올려 종료하지 말 것".
+- 개인정보처리방침에 iOS 앱 포함 여부 확인.
+- App Store 심사용 데모 계정(심사자가 로그인해 픽업까지 볼 수 있는 시험 드라이버)과 심사 메모.
+- (선택) /app/version.json에 "ios" 항목.
+
+--------------------------------------------------------------------
+5. 작업 순서
+--------------------------------------------------------------------
+1) 도구 확인·설치: Xcode(App Store, 최신), xcode-select, Homebrew, XcodeGen, git.
+   시뮬레이터 런타임 확인. 설치 절차를 docs/SETUP.md에.
+2) 프로젝트 골격: project.yml, 번들 ID·이름·버전(1.0.0, 빌드 번호 1), 한글·영문 현지화,
+   앱 아이콘 1024×1024(Android 저장소의 docs/store 아이콘 또는 TMS의
+   app/static/img/PartnerLogo.png 기반, 투명 배경 없이).
+3) WKWebView 화면 + 카메라·파일 + User-Agent + 외부 링크 + 오류 화면 + Universal Links
+   (entitlement만; 서버 파일은 TMS 작업).
+4) 위치 추적 + OsmAnd 전송 + 오프라인 큐 + 하트비트 + 전송 감시 + 종료 후 재시작.
+   Debug 빌드에서 웹 다리 없이 추적을 켜고 끄는 방법(예: 실행 인자 또는 URL 스킴
+   ktxdriver-debug://)을 만든다.
+5) KtxAndroidApp 다리(동기 호출) + 도메인 제한 + ktxappstatus 이벤트.
+6) 첫 실행 안내 + 위치 공개 안내.
+7) 설정 화면 + 서버 주소 변경(관리자 PIN).
+8) 서명·배포: Apple 팀 설정(자동 서명), Archive → App Store Connect 업로드 → TestFlight 절차,
+   App Store 등록 정보(설명, 스크린샷, 개인정보 "위치" 항목, 심사 메모)를 docs/RELEASE.md에.
+   Apple 계정이 아직 없으면 무료 개인 팀으로 내 아이폰에 설치해 시험하는 방법을 먼저.
+9) 실기기 시험 체크리스트 docs/TEST.md: 설치 → SMS 링크로 로그인(Universal Link) → 픽업 스캔 →
+   추적 시작 → 화면 끄고 30분 운전 → 서버 지도에 1분 간격 점 → 비행기 모드 10분 후 큐 재전송 →
+   배송 → 추적 중지 → 앱 쓸어 올려 종료·재부팅 시 동작 확인 → 배터리 사용량.
+
+로컬 시험: Mac에서 OsmAnd POST를 받아 기록하는 작은 수신기(python3 http.server 기반)를
+tools/에 두고, 시뮬레이터는 http://127.0.0.1:8099/gps 로 바로 보낸다(Debug 빌드에서만 ATS 예외).
+시뮬레이터 위치는 xcrun simctl location 또는 GPX로 움직인다. 백그라운드 동작은 반드시 실기기로.
+
+--------------------------------------------------------------------
+6. 참고 정보
+--------------------------------------------------------------------
+- Android 판 저장소: https://github.com/Jay-Vancouver/KTX.AndroidApp — 특히
+  KtxBridge.kt(다리), LocationService.kt(주기·하트비트), FixUploader.kt(전송·감시),
+  FixQueue.kt(큐), TrackingState.kt(검증 규칙), WebHosts.kt(허용 호스트), SettingsActivity.kt,
+  res/values*/strings.xml(문구), docs/TEST.md.
+- TMS 저장소(Windows PC의 WSL): /home/tms_user/ktx/tms — 드라이버 페이지 app/templates/driver/
+  (status.html, scan_result.html, delivery_result.html가 다리를 호출), 위치 수신 app/gps/.
+  Mac에서는 접근할 수 없으므로 필요한 내용은 사용자에게 요청한다.
+- 위치 수신 주소: https://www.withktx.com/gps (startTracking이 주는 url을 쓸 것).
+- 식별자 = 드라이버 전화번호 숫자 10자리(앞의 1 제거).
+- 시험 서버: https://test.ktxtransport.com/driver/ (설정 화면에서 서버 주소로 지정해 시험).
+- 사무실 Wi-Fi에서는 공인 IP로 회사 서버에 접속이 안 될 수 있다(hairpin NAT). 실기기 시험은
+  모바일 데이터로.
+- 진행 중인 TMS 쪽 결정: 위치 수집 시작 시점(픽업 시 → 배차 시로 앞당길지), 화물이 없을 때
+  Start tracking 버튼 숨김과 자동 중지. 앱 동작은 바뀌지 않고 공개 안내 문구만 영향을 받는다.
